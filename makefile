@@ -1,10 +1,13 @@
+QUEUE_SOURCES =               Queue/LinkedList.c Queue/LinkedListNode.c
+QUEUE_HEADERS = Queue/Queue.h Queue/LinkedList.h Queue/LinkedListNode.h
+
 CLIENT_EXEC = client
-CLIENT_SOURCES = client.c message.c                      Queue/LinkedList.c Queue/LinkedListNode.c
-CLIENT_HEADERS =          message.h chat.h Queue/Queue.h Queue/LinkedList.h Queue/LinkedListNode.h
+CLIENT_SOURCES = client.c message.c chat.c $(QUEUE_SOURCES)
+CLIENT_HEADERS =          message.h chat.h $(QUEUE_HEADERS)
 
 SERVER_EXEC = server
-SERVER_SOURCES = server.c message.c                      Queue/LinkedList.c Queue/LinkedListNode.c
-SERVER_HEADERS =          message.h chat.h Queue/Queue.h Queue/LinkedList.h Queue/LinkedListNode.h
+SERVER_SOURCES = server.c message.c chat.c $(QUEUE_SOURCES)
+SERVER_HEADERS =          message.h chat.h $(QUEUE_HEADERS)
 
 CC = gcc
 CFLAGS = -ansi -pedantic -Wall -Werror
