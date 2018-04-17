@@ -16,6 +16,7 @@ enum MessageType {
 
 struct Message {
 	char username[MAX_USERNAME];
+	enum MessageType type;
 	unsigned int length;
 	char * text;
 };

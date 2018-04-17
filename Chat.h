@@ -18,7 +18,7 @@ struct Chat {
 	} send, receive;
 };
 
-struct Chat *  Chat_init(struct Chat * chat, int fd, Queue * printQueue, pthread_mutex_t printMutex);
+struct Chat *  Chat_init(struct Chat * chat, int fd, Queue * printQueue, pthread_mutex_t * printMutex);
 
 int  Chat_start(struct Chat * chat);
 int  Chat_close(struct Chat * chat);
