@@ -42,6 +42,30 @@ void Chat_send(struct Chat * const chat, const char * const text) {
 	}
 }
 
+void  Chat_receive(struct Chat * chat, enum MessageType * type, char * username, char * text) {
+	if (chat != NULL && type != NULL && username != NULL && text != NULL) {
+		if ( !Queue_isEmpty(&chat->receive.queue) ) {
+			const struct Message * next;
+			struct Message message;
+			next = (const struct Message *)Queue_next(&chat->receive.queue);
+			Message_deepCopy(&message, next);
+			*type = next->type;
+			strncpy(username, next->username, MAX_USERNAME);
+			if (next->length > 0) {
+				strncpy(text, next->text, next->length);
+			}
+			else
+				strcpy(text, "");
+		}
+		/* no message */
+		else {
+			*username = '\0';
+			*text = '\0';
+		}
+	}
+}
+
+
 void *  Chat_sendCallback(void * void_chat) {
 	struct Chat * const chat = void_chat;
 	if (chat != NULL) {
