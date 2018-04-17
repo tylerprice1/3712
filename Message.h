@@ -6,9 +6,9 @@
 
 enum MessageType {
 	/* errors */
-	GENERAL_ERROR,
-	INVALID_USERNAME,
+	INVALID_USERNAME = -3,
 	CHAT_FULL,
+	GENERAL_ERROR,
 	/* others */
 	NEW_MESSAGE,
 	JOIN_REQUEST,
