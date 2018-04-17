@@ -1,0 +1,13 @@
+The current organization of the project has the client and server in individual folders.
+Each has a copy of all the files needed for compilation.
+Each has a makefile.
+
+Some things worth mentioning:
+	If the client sends an invalid key, the server closes the connection.
+	If the server exits abruptly (SIGINT, for example), sometimes it takes a few minutes for the kernel to free the port for use again. During this time, the server will be unable to listen to the same port.
+	Filename are no more than 80 bytes... 79 characters and the null terminator
+	I did NOT use the code provided by the book; I did use it as a reference though.
+	Requests and responses are modeled using structs. All types of requests and responses fit into the respective struct.
+		mycloud_request and mycloud_response (defined in mycloud.h)
+
+
