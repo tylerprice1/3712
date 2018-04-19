@@ -3,6 +3,7 @@
 
 #define CHAT_WAIT_TIME 2u
 
+#include "Message.h"
 #include "networking.h"
 #include "Queue/Queue.h"
 
@@ -10,7 +11,7 @@ struct Chat {
 	char username[MAX_USERNAME];
 	int fd;
 	Queue * printQueue;
-	pthread_mutex_t printMutex;
+	pthread_mutex_t * printMutex;
 	struct {
 		Queue queue;
 		pthread_mutex_t mutex;
@@ -19,12 +20,10 @@ struct Chat {
 };
 
 struct Chat *  Chat_init(struct Chat * chat, int fd, Queue * printQueue, pthread_mutex_t * printMutex);
-
-int  Chat_start(struct Chat * chat);
 int  Chat_close(struct Chat * chat);
 
-void  Chat_send(struct Chat * chat, const char * text);
-void  Chat_receive(struct Chat * chat, char * username, char * text);
+void  Chat_send(struct Chat * chat, const struct Message * message);
+void  Chat_receive(struct Chat * chat, struct Message * message);
 
 void *  Chat_sendCallback(void * chat);
 void *  Chat_receiveCallback(void * chat);

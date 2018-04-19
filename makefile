@@ -1,13 +1,16 @@
-QUEUE_SOURCES =               Queue/LinkedList.c Queue/LinkedListNode.c
+QUEUE_SOURCES = Queue/Queue.c Queue/LinkedList.c Queue/LinkedListNode.c
 QUEUE_HEADERS = Queue/Queue.h Queue/LinkedList.h Queue/LinkedListNode.h
 
+MUTUAL_SOURCES = networking.c Message.c Chat.c $(QUEUE_SOURCES)
+MUTUAL_HEADERS = networking.h Message.h Chat.h $(QUEUE_HEADERS)
+
 CLIENT_EXEC = client
-CLIENT_SOURCES = client.c message.c chat.c $(QUEUE_SOURCES)
-CLIENT_HEADERS =          message.h chat.h $(QUEUE_HEADERS)
+CLIENT_SOURCES = client.c $(MUTUAL_SOURCES)
+CLIENT_HEADERS =          $(MUTUAL_HEADERS)
 
 SERVER_EXEC = server
-SERVER_SOURCES = server.c message.c chat.c $(QUEUE_SOURCES)
-SERVER_HEADERS =          message.h chat.h $(QUEUE_HEADERS)
+SERVER_SOURCES = server.c $(MUTUAL_SOURCES)
+SERVER_HEADERS =          $(MUTUAL_HEADERS)
 
 CC = gcc
 CFLAGS = -ansi -pedantic -Wall -Werror

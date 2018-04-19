@@ -30,7 +30,7 @@ int main(const int argc, const char * const * const argv) {
 		err = IS_ERROR(scanf("%" stringify(MAX_USERNAME) "s", username));
 		while ( !err && !usernameIsValid(username) ) {
 			fprintf(stderr, "\"%s\" is not a valid username. ", username);
-			fprintf(stderr, "Valid usernames are less than %d characters, ", MAX_USERNAME);
+			fprintf(stderr, "Valid usernames contain fewer than %d characters, ", MAX_USERNAME);
 			fprintf(stderr, "start with a letter or underscore, and continue with letters, numbers, or underscores\n");
 			printf("Enter a username: ");
 			err = IS_ERROR(scanf("%" stringify(MAX_USERNAME) "s", username));
@@ -40,7 +40,7 @@ int main(const int argc, const char * const * const argv) {
 			strcpy(errorMessage, "stdin error");
 			goto errorstate;
 		}
-		printf("Your username is \"%s\" (has length %lu)\n", username, strlen(username));
+		printf("Your username is \"%s\"\n", username);
 		printf("Connecting to chat service...\n");
 		/* OPEN CONNECTION WITH SERVER */
 		socketfd = connectServer(argv[1], argv[2], errorMessage);
