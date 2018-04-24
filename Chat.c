@@ -54,10 +54,11 @@ void
 void *  Chat_sendCallback(void * void_chat) {
 	struct Chat * const chat = void_chat;
 	if (chat != NULL) {
-		char report[1024] = "";
 		char substr[16] = "";
-		struct Message message;
+		struct Message message, report;
 		int err = 0;
+		report.type = LOCAL_MESSAGE;
+		
 		/* while socket is still open */
 		while ( !err ) {
 			/* a pending message */ 
@@ -73,14 +74,14 @@ void *  Chat_sendCallback(void * void_chat) {
 				if (chat->printQueue != NULL) {
 					/* report to main thread */
 					strncpy(substr, message.text, sizeof(substr));
-					if (IS_ERROR(err)) {
-						sprintf(report, "Failed to send message starting with \"%s\"", substr);
+					if (err) {
+						sprintf(report.text, "Failed to send message starting with \"%s\"", substr);
 					}
 					else {
-						sprintf(report, "Sent message starting with \"%s\"!", substr);
+						sprintf(report.text, "Sent message starting with \"%s\"!", substr);
 					}
 					pthread_mutex_lock( chat->printMutex );  /* LOCK */
-					Queue_enqueue( chat->printQueue, substr);
+					Queue_enqueue( chat->printQueue, &report );
 					pthread_mutex_unlock( chat->printMutex );  /* UNLOCK */
 				}
 			}
@@ -94,7 +95,20 @@ void *  Chat_sendCallback(void * void_chat) {
 }
 
 void *  Chat_receiveCallback(void * void_chat) {
+	struct Chat * const chat = void_chat;
 	fprintf(stderr, "Chat_receiveCallback() isn't done yet :(\n");
+
+	if (chat != NULL) {
+		struct Message message;
+		int err = 0;
+		while ( !err ) {
+			err = IS_ERROR(Message_read(&message, chat->fd));
+			if (!err) {
+				
+			}
+		}
+	}
+
 	return NULL;
 }
 

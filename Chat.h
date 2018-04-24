@@ -25,6 +25,11 @@ int  Chat_close(struct Chat * chat);
 void  Chat_send(struct Chat * chat, const struct Message * message);
 void  Chat_receive(struct Chat * chat, struct Message * message);
 
+/*
+ * these ALWAYS return NULL
+ * the (void *) return type was
+ * required by pthread
+ */
 void *  Chat_sendCallback(void * chat);
 void *  Chat_receiveCallback(void * chat);
 

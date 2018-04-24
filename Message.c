@@ -47,20 +47,14 @@ int
 				if (bytesRead == sizeof(out.length)) {
 					totalRead += bytesRead;
 					out.length = ntohl(out.length);
-					/* allocate for text if needed */
 					if (out.length > 0) {
-						char * temp;
-						temp = (char *)malloc(out.length * sizeof(char));
-						if (temp != NULL) {
-							out.text = temp;
-							/* read text */
-							bytesRead = robustRead(fd, out.text, out.length);
-							if (bytesRead > 0) {
-								totalRead += bytesRead;
-								Message_deepCopy(m, &out);
-								Message_destroy(&out);
-								return totalRead;
-							}
+						/* read text */
+						bytesRead = robustRead(fd, out.text, out.length);
+						if (bytesRead > 0) {
+							totalRead += bytesRead;
+							out.text[out.length] = '\0';
+							Message_deepCopy(m, &out);
+							return totalRead;
 						}
 					}
 				}
@@ -89,49 +83,29 @@ struct Message *
                     const char * const text)
 {
 	if (message != NULL && username != NULL && text != NULL) {
-		char * temp;
-		unsigned int len;
-
+		register unsigned int len;
 		len = strlen(text);
-		temp = (char *)malloc( sizeof(char) * (len + 1) ); /* +1 for '\0' */
-		if (temp != NULL) {
-			message->type = type;
-			strncpy(message->username, username, MAX_USERNAME);
-			message->length = len;
-			message->text = temp;
-			return message;
-		}
+
+		message->type = type;
+		strncpy(message->username, username, MAX_USERNAME);
+		message->length = (len < MAX_MESSAGE) ? len : MAX_MESSAGE;
+		strncpy(message->text, text, MAX_MESSAGE);
+
+		return message;
 	}
 	return NULL;
 }
 void
  Message_destroy(struct Message * const m) {
 	if (m != NULL) {
-		if (m->text != NULL)
-			free(m->text);
 		Message_init(m);
 	}
 }
 struct Message *
  Message_deepCopy(struct Message * destination, const struct Message * source) {
 	if (destination != NULL && source != NULL) {
-		char * temp;
-		/* allocate text */
-		if (destination->text != NULL) {
-			temp = (char *)realloc(destination->text, source->length * sizeof(char));
-		}
-		else {
-			temp = (char *)malloc(source->length * sizeof(char));
-		}
-		if (temp != NULL) {
-			/* copy values */
-			destination->type = source->type;
-			strcpy(destination->username, source->username);
-			destination->length = source->length;
-			destination->text = temp;
-			strcpy(destination->text, source->text);
-			return destination;
-		}
+		memcpy(destination, source, sizeof(struct Message));
+		return destination;
 	}
 	return NULL;
 }

@@ -12,19 +12,33 @@
 #include "networking.h"
 #include "stringify.h"
 
+#define MAX_TEXT 
 #define MAX_ERROR 1024
 #define IS_ERROR(err) ((err) < 0)
 
 int usernameIsValid (const char * name);  /* returns bool */
 int connectServer (const char * servername, const char * port, char * errorMessage);  /* returns socketfd, -1 on error */
 
+struct Line {
+	char * line;
+	unsigned int capacity;
+};
+
+char *
+readLine(struct Line * line);
+
 /* label "errorstate" is located at the end of main */
 int main(const int argc, const char * const * const argv) {
 	int err = 0;
 	char errorMessage[MAX_ERROR] = "";
 	if (argc == 3) {
+		struct Message * toPrint;
+		Queue printQueue; /* Chat prints progress in this queue */
+		pthread_mutex_t printMutex;
+		struct Chat chat;
 		int socketfd = -1;
 		char username[MAX_USERNAME] = "";
+		struct Line text;
 		/* GET USERNAME */
 		printf("Enter a username: ");
 		err = IS_ERROR(scanf("%" stringify(MAX_USERNAME) "s", username));
@@ -46,13 +60,35 @@ int main(const int argc, const char * const * const argv) {
 		socketfd = connectServer(argv[1], argv[2], errorMessage);
 		err = IS_ERROR(socketfd);
 		if (err) {
-			/* strcpy(errorMessage, "Could not establish connection with server"); */
 			goto errorstate;
 		}
 		/* START COMMUNICATING */
-		printf("Connection established");
-		printf("Work in progress. Exiting...\n");
+		printf("Connection established!\n");
+		printf("Starting communication with server\n");
+		/* open chat */
+		Queue_initAndSet(&printQueue, sizeof(struct Message), NULL, NULL);
+		pthread_mutex_init(&printMutex, NULL);
+		Chat_init(&chat, socketfd, &printQueue, &printMutex);
 
+		printf("Starting chat. Enter '\\quit' to stop\n");
+		printf("> ");
+		readLine( &text );
+		while ( strcmp(text.line, "\\quit") != 0 ) {
+
+			pthread_mutex_lock(&printMutex);
+			while ( !Queue_isEmpty(&printQueue) ) {
+				 toPrint = (struct Message *) Queue_next(&printQueue);
+				 printf("%s\n", toPrint->text);
+				 Queue_dequeue(&printQueue);
+			}
+			pthread_mutex_unlock(&printMutex);
+
+
+
+			printf("> ");
+			readLine( &text );
+		}
+		free(text.line);
 		close(socketfd);
 	}
 	else {
@@ -63,6 +99,42 @@ int main(const int argc, const char * const * const argv) {
 errorstate:
 	fprintf(stderr, "ERROR: \"%s\"\n", errorMessage);
 	return -1;
+}
+
+char *
+readLine(struct Line * const line) {
+	if (line != NULL) {
+		if (line->line == NULL) {
+			line->capacity = 1024; /* an initial size */
+			line->line = (char *)malloc(line->capacity);
+		}
+		if (line->line != NULL) {
+			unsigned int i = 0;
+			char ch;
+			ch = getchar();
+			while (ch != '\n' && ch != EOF) {
+				if (i == line->capacity) {
+					char * temp;
+					unsigned int newCapacity;
+					newCapacity = line->capacity << 1;
+					temp = realloc(line->line, newCapacity * sizeof(char));
+					if (temp != NULL) {
+						line->line = temp;
+						line->capacity = newCapacity;
+					}
+					else {
+						/* can't allocate anymore */
+						break;
+					}
+				}
+
+				line->line[i] = ch;
+				ch = getchar();
+			}
+			return line->line;
+		}
+	}
+	return NULL;
 }
 
 int usernameIsValid (const char * const name) {
