@@ -13,9 +13,10 @@ enum MessageType {
 	CHAT_FULL,
 	GENERAL_ERROR,
 	/* others */
-	BLANK_MESSAGE = 0, /* empty message: set by Message_init */
+	NO_MESSAGE = 0, /* empty message: set by Message_init */
 	NEW_MESSAGE,
 	JOIN_REQUEST,
+	EXIT_REQUEST,
 	LOCAL_MESSAGE /* using for communication within client/server (e.g., printQueue) */
 };
 

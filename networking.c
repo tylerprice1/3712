@@ -30,7 +30,7 @@ int robustRead (int fd, void * des, unsigned int bytes) {
 				pos += bytes_read;
 			}
 		} while (!err && !eof && bytes_left > 0);
-		bytes_read = bytes - bytes_left;
+		bytes_left = bytes - bytes_read;
 	}
 	else {
 		err = 1;

@@ -27,10 +27,15 @@ struct Chat *  Chat_init(struct Chat * chat, int fd, Queue * printQueue, pthread
 	return NULL;
 }
 
+int  Chat_isMoreToSend(struct Chat * chat) {
+	return !Queue_isEmpty(&(chat->send.queue));
+}
+
 void
  Chat_send(struct Chat * const chat, const struct Message * const message) {
 	if (chat != NULL && message != NULL) {
 		/* add to send queue */
+/*		fprintf(stderr, "adding to send queue: %s\n", message->text); */
 		pthread_mutex_lock( &(chat->send.mutex) );  /* LOCK */
 		Queue_enqueue( &(chat->send.queue), message);
 		pthread_mutex_unlock( &(chat->send.mutex) );  /* UNLOCK */
@@ -48,6 +53,9 @@ void
 			Queue_dequeue( &(chat->receive.queue) );
 			pthread_mutex_unlock( &(chat->receive.mutex) );  /* UNLOCK */
 		}
+		else {
+			message->type = NO_MESSAGE;
+		}
 	}
 }
 
@@ -57,21 +65,29 @@ void *  Chat_sendCallback(void * void_chat) {
 		char substr[16] = "";
 		struct Message message, report;
 		int err = 0;
+		int bytesWritten;
 		report.type = LOCAL_MESSAGE;
-		
+/*		fprintf(stderr, "sendCallback\n"); */
 		/* while socket is still open */
 		while ( !err ) {
-			/* a pending message */ 
+/*			fprintf(stderr, "sendCallback loop\n"); */
+			/* a pending message */
 			if ( ! Queue_isEmpty( &(chat->send.queue) ) ) {
 				/* get message */
 				message = *(struct Message *)Queue_next( &chat->send.queue );
-				/* remove from queue */
-				pthread_mutex_lock( &(chat->send.mutex) );  /* LOCK */
-				Queue_dequeue(&chat->send.queue);
-				pthread_mutex_unlock( &(chat->send.mutex) );  /* UNLOCK */
 				/* send */
-				err = IS_ERROR(Message_write(&message, chat->fd));
-				if (chat->printQueue != NULL) {
+/*				fprintf(stderr, "sending message: %s\n", message.text); */
+				bytesWritten = Message_write(&message, chat->fd);
+				err = IS_ERROR(bytesWritten) || bytesWritten == 0;
+				/* remove from queue */
+				if (!err) {
+					pthread_mutex_lock( &(chat->send.mutex) );  /* LOCK */
+					Queue_dequeue(&chat->send.queue);
+					pthread_mutex_unlock( &(chat->send.mutex) );  /* UNLOCK */
+				}
+				/* report */
+				if (chat->printQueue != NULL && chat->printMutex != NULL) {
+/*					fprintf(stderr, "sent message: %s\n", message.text); */
 					/* report to main thread */
 					strncpy(substr, message.text, sizeof(substr));
 					if (err) {
@@ -96,15 +112,21 @@ void *  Chat_sendCallback(void * void_chat) {
 
 void *  Chat_receiveCallback(void * void_chat) {
 	struct Chat * const chat = void_chat;
-	fprintf(stderr, "Chat_receiveCallback() isn't done yet :(\n");
+/*	fprintf(stderr, "Chat_receiveCallback() isn't done yet :(\n"); */
 
 	if (chat != NULL) {
 		struct Message message;
 		int err = 0;
+/*		fprintf(stderr, "receiveCallback\n"); */
 		while ( !err ) {
+/*			fprintf(stderr, "receiveCallback loop\n"); */
 			err = IS_ERROR(Message_read(&message, chat->fd));
 			if (!err) {
-				
+/*				fprintf(stderr, "received message: %s\n", message.text); */
+				/* add to queue */
+				pthread_mutex_lock( &(chat->receive.mutex) );  /* LOCK */
+				Queue_enqueue(&chat->receive.queue, &message);
+				pthread_mutex_unlock( &(chat->receive.mutex) );  /* UNLOCK */
 			}
 		}
 	}

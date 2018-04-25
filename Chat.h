@@ -25,6 +25,8 @@ int  Chat_close(struct Chat * chat);
 void  Chat_send(struct Chat * chat, const struct Message * message);
 void  Chat_receive(struct Chat * chat, struct Message * message);
 
+int  Chat_isMoreToSend(struct Chat * chat);
+
 /*
  * these ALWAYS return NULL
  * the (void *) return type was

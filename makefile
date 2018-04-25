@@ -13,7 +13,7 @@ SERVER_SOURCES = server.c $(MUTUAL_SOURCES)
 SERVER_HEADERS =          $(MUTUAL_HEADERS)
 
 CC = gcc
-CFLAGS = -ansi -pedantic -Wall -Werror
+CFLAGS = -g -ansi -pedantic -Wall -Werror
 
 all: $(CLIENT_HEADERS) $(SERVER_HEADERS) $(CLIENT_SOURCES) $(SERVER_SOURCES)
 	$(CC) $(CFLAGS) -o $(SERVER_EXEC) $(SERVER_SOURCES)

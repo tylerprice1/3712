@@ -32,7 +32,7 @@ int main(const int argc, const char * const * const argv) {
 	int err = 0;
 	char errorMessage[MAX_ERROR] = "";
 	if (argc == 3) {
-		struct Message * toPrint;
+		struct Message toSend, * toPrint;
 		Queue printQueue; /* Chat prints progress in this queue */
 		pthread_mutex_t printMutex;
 		struct Chat chat;
@@ -72,9 +72,10 @@ int main(const int argc, const char * const * const argv) {
 
 		printf("Starting chat. Enter '\\quit' to stop\n");
 		printf("> ");
-		readLine( &text );
-		while ( strcmp(text.line, "\\quit") != 0 ) {
-
+		while ( readLine(&text) != NULL && strcmp(text.line, "\\quit") != 0 ) {
+			Message_initAndSet(&toSend, NEW_MESSAGE, username, text.line);
+			Chat_send(&chat, &toSend);
+			/* give updates from callback */
 			pthread_mutex_lock(&printMutex);
 			while ( !Queue_isEmpty(&printQueue) ) {
 				 toPrint = (struct Message *) Queue_next(&printQueue);
@@ -83,20 +84,34 @@ int main(const int argc, const char * const * const argv) {
 			}
 			pthread_mutex_unlock(&printMutex);
 
-
-
 			printf("> ");
-			readLine( &text );
 		}
 		free(text.line);
+		/* send exit request to server */
+		Message_initAndSet(&toSend, EXIT_REQUEST, username, "<exiting chat>");
+		Chat_send(&chat, &toSend);
+		while (Chat_isMoreToSend(&chat)) {
+			sleep(1);
+		} /* wait until all messages are sent */
 		close(socketfd);
+
+		/* flush any remaining updates */
+		pthread_mutex_lock(&printMutex);
+		while ( !Queue_isEmpty(&printQueue) ) {
+			 toPrint = (struct Message *) Queue_next(&printQueue);
+			 printf("%s\n", toPrint->text);
+			 Queue_dequeue(&printQueue);
+		}
+		pthread_mutex_unlock(&printMutex);
 	}
 	else {
 		sprintf(errorMessage, "Usage: %s <server name> <port>", argv[0]);
 		goto errorstate;
 	}
+/*	system("ps"); */
 	return 0;
 errorstate:
+/*	system("ps"); */
 	fprintf(stderr, "ERROR: \"%s\"\n", errorMessage);
 	return -1;
 }
@@ -112,6 +127,8 @@ readLine(struct Line * const line) {
 			unsigned int i = 0;
 			char ch;
 			ch = getchar();
+			while (isspace(ch))
+				ch = getchar();
 			while (ch != '\n' && ch != EOF) {
 				if (i == line->capacity) {
 					char * temp;
@@ -128,9 +145,10 @@ readLine(struct Line * const line) {
 					}
 				}
 
-				line->line[i] = ch;
+				line->line[i++] = ch;
 				ch = getchar();
 			}
+			line->line[i] = '\0';
 			return line->line;
 		}
 	}
