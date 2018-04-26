@@ -32,13 +32,14 @@ int main(const int argc, const char * const * const argv) {
 	int err = 0;
 	char errorMessage[MAX_ERROR] = "";
 	if (argc == 3) {
-		struct Message toSend, * toPrint;
+		struct Message toSend, received, * toPrint;
 		Queue printQueue; /* Chat prints progress in this queue */
 		pthread_mutex_t printMutex;
 		struct Chat chat;
 		int socketfd = -1;
 		char username[MAX_USERNAME] = "";
 		struct Line text;
+		memset(&text, 0, sizeof(text));
 		/* GET USERNAME */
 		printf("Enter a username: ");
 		err = IS_ERROR(scanf("%" stringify(MAX_USERNAME) "s", username));
@@ -68,13 +69,22 @@ int main(const int argc, const char * const * const argv) {
 		/* open chat */
 		Queue_initAndSet(&printQueue, sizeof(struct Message), NULL, NULL);
 		pthread_mutex_init(&printMutex, NULL);
-		Chat_init(&chat, socketfd, &printQueue, &printMutex);
+/*		Chat_init(&chat, socketfd, &printQueue, &printMutex); */
+		Chat_init(&chat, socketfd, NULL,        NULL);
 
 		printf("Starting chat. Enter '\\quit' to stop\n");
 		printf("> ");
 		while ( readLine(&text) != NULL && strcmp(text.line, "\\quit") != 0 ) {
 			Message_initAndSet(&toSend, NEW_MESSAGE, username, text.line);
+			/* send message */
 			Chat_send(&chat, &toSend);
+			/* receive messages */
+			Chat_receive(&chat, &received);
+			while (received.type == NEW_MESSAGE) {
+				printf("%s: %s\n", received.username, received.text);
+				Chat_receive(&chat, &received);
+			}
+			
 			/* give updates from callback */
 			pthread_mutex_lock(&printMutex);
 			while ( !Queue_isEmpty(&printQueue) ) {
@@ -86,15 +96,23 @@ int main(const int argc, const char * const * const argv) {
 
 			printf("> ");
 		}
-		free(text.line);
+		if (text.line != NULL) {
+			fprintf(stderr, "freeing text.line = %p (%s)\n", (void *)text.line, text.line);
+			free(text.line);
+		}
 		/* send exit request to server */
 		Message_initAndSet(&toSend, EXIT_REQUEST, username, "<exiting chat>");
 		Chat_send(&chat, &toSend);
 		while (Chat_isMoreToSend(&chat)) {
 			sleep(1);
 		} /* wait until all messages are sent */
-		close(socketfd);
 
+		/* receive any remaining messages */
+		Chat_receive(&chat, &received);
+		while (received.type == NEW_MESSAGE) {
+			printf("%s: %s\n", received.username, received.text);
+			Chat_receive(&chat, &received);
+		}
 		/* flush any remaining updates */
 		pthread_mutex_lock(&printMutex);
 		while ( !Queue_isEmpty(&printQueue) ) {
@@ -103,6 +121,8 @@ int main(const int argc, const char * const * const argv) {
 			 Queue_dequeue(&printQueue);
 		}
 		pthread_mutex_unlock(&printMutex);
+		/* close connection */
+		close(socketfd);
 	}
 	else {
 		sprintf(errorMessage, "Usage: %s <server name> <port>", argv[0]);
@@ -121,7 +141,7 @@ readLine(struct Line * const line) {
 	if (line != NULL) {
 		if (line->line == NULL) {
 			line->capacity = 1024; /* an initial size */
-			line->line = (char *)malloc(line->capacity);
+			line->line = (char *)calloc(line->capacity, sizeof(char));
 		}
 		if (line->line != NULL) {
 			unsigned int i = 0;
@@ -134,14 +154,16 @@ readLine(struct Line * const line) {
 					char * temp;
 					unsigned int newCapacity;
 					newCapacity = line->capacity << 1;
-					temp = realloc(line->line, newCapacity * sizeof(char));
+					temp = (char *)realloc(line->line, newCapacity * sizeof(char));
 					if (temp != NULL) {
+						fprintf(stderr, "readLine(): capacity increased to %u\n", newCapacity);
 						line->line = temp;
 						line->capacity = newCapacity;
 					}
 					else {
 						/* can't allocate anymore */
-						break;
+						fprintf(stderr, "readLine(): alloc error\n");
+						return NULL;
 					}
 				}
 

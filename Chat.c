@@ -91,7 +91,7 @@ void *  Chat_sendCallback(void * void_chat) {
 					/* report to main thread */
 					strncpy(substr, message.text, sizeof(substr));
 					if (err) {
-						sprintf(report.text, "Failed to send message starting with \"%s\"", substr);
+						sprintf(report.text, "Failed to send message starting with \"%s...\"", substr);
 					}
 					else {
 						sprintf(report.text, "Sent message starting with \"%s\"!", substr);
