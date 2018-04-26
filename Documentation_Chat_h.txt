@@ -1,0 +1,38 @@
+struct Chat consists of the following members:
+	a c-string "username" of capacity MAX_USERNAME
+	a file descriptor (socket fd)
+	a pointer to a print queue
+		queue of c-strings
+		used to report back to the instantiating thread that a message was sent success/fail
+	a pointer to a mutex
+		for the print queue
+		ensures that no multithreading read/write issues occur
+	two structs (send, receive)
+		a queue of messages
+		a mutex for the queue
+		a pthread for the send/receive thread
+
+Each chat creates two threads: one for sending messages and one for receiving.
+It abstracts away the processing of messages and reading/writing to sockets to
+ a single function call.
+
+Chat_send(chat, text):
+	message = Message_init(chat.username, text)
+	message = Message_htons(message)
+	lock queue mutex
+		enqueue
+	unlock queue mutex
+
+The send thread:
+	Wait for a message to send (check whether queue is empty)
+	If there is a message:
+		Read message from queue
+		Lock mutex
+			pop message from queue
+		unlock mutex
+		Message_send(...)
+		if print queue is not nil:
+			On success, write success message to print queue
+			Else, write fail message to print queue
+	else:
+		wait(a couple of seconds)
