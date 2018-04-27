@@ -23,17 +23,45 @@ int main(int argc, char *argv[]) {
     pthread_t td;
 
     /* Socket settings */
+    /* domain = AF_INET IPv4; AF_INET6 IPv6 */
+    int sockid = socket(domain, SOCK_STREAM, 0);
+    if (sockid == -1) {
+        /* failure */
+        return;
+    }
 
     /* Bind */
+    int status = bind(sockid, INADDR_ANY, socklen_t addrlen);
+    if (status == -1) {
+        /* failure */
+        return;
+    }
 
     /* Listen */
+    status = listen(sockid, int backlog);
+    if (status == -1) {
+        /* error */
+        return;
+    }
 
     /* Accept clients */
+    addrLen = sizeof(cli_addr);
+    int new_socket = accept(sockid, &cli_addr, addrLen);
+
     while(1) {
         /* Client settings */
         client_t *new_client = (client_t)malloc(sizeof(client_t));
 
         /* Add client to the queue */
+        status = connect(sockid, &cli_addr, socklen_t addrlen);
+        if (status == -1) {
+            /* unsuccesful */
+            return;
+        }
+
+        send();
+        receive();
+        close();
 
         /* Create a thread */
         pthread_create(&td, NULL, &handle_client, (void*)new_client);
