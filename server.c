@@ -1,5 +1,5 @@
 /*
- * Description: This is the server for the project.
+ * Description: This is the server for the chat project.
  * Course Name: CS371 Project 2
  * Authors: Tyler Price & Connor VanMeter
  */
