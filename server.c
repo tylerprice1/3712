@@ -37,10 +37,11 @@ int main(int argc, char *argv[]) {
     struct Message received, toSend;
 
     /* Socket settings */
-    /* domain = AF_INET IPv4; AF_INET6 IPv6 */
-    int sockid = socket(domain, SOCK_STREAM, 0);
+    /* Domain defaults to IPv4 */
+    int sockid = socket(AF_INET, SOCK_STREAM, 0);
     if (sockid == -1) {
         /* failure */
+        printf("Failure with server socket");
         return;
     }
 
@@ -48,6 +49,7 @@ int main(int argc, char *argv[]) {
     int status = bind(sockid, INADDR_ANY, socklen_t addrlen);
     if (status == -1) {
         /* failure */
+        printf("Failure with server bind");
         return;
     }
 
@@ -55,6 +57,7 @@ int main(int argc, char *argv[]) {
     status = listen(sockid, int backlog);
     if (status == -1) {
         /* error */
+        printf("Failure with server listen");
         return;
     }
 
