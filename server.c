@@ -16,20 +16,19 @@
 
 /* This function handles all communication with clients */
 void *handler_client(void *arg) {
-
+    return;
 }
 
 int main(int argc, char *argv[]) {
-    int listenfd, new_socket, port;
-    socklen_t clientlen;
-    struct sockaddr_in serv_add, cli_addr;
-    struct hostent * hp;
-    char * haddrp;
+    int /*listenfd*/, new_socket, port;
+    //socklen_t clientlen;
+    // read serv_add
+    struct sockaddr_in cli_addr;
     pthread_t td;
 
     if (argc != 2) {
         printf("Wrong arg count");
-        return;
+        return 1;
     }
 
     struct Chat chat;
@@ -41,7 +40,7 @@ int main(int argc, char *argv[]) {
     if (sockid == -1) {
         /* failure */
         printf("Failure with server socket");
-        return;
+        return 1;
     }
 
     /* Bind */
@@ -49,7 +48,7 @@ int main(int argc, char *argv[]) {
     if (status == -1) {
         /* failure */
         printf("Failure with server bind");
-        return;
+        return 1;
     }
 
     /* Listen */
@@ -57,7 +56,7 @@ int main(int argc, char *argv[]) {
     if (status == -1) {
         /* error */
         printf("Failure with server listen");
-        return;
+        return 1;
     }
 
     /* Accept clients */
@@ -72,28 +71,26 @@ int main(int argc, char *argv[]) {
         status = connect(sockid, &cli_addr, socklen_t addrlen);
         if (status == -1) {
             /* unsuccesful */
-            printf("Client %d failed to connect to Server," cli_addr);
-            return;
+            printf("Client failed to connect to Server");
+            return 1;
         }
 
-        printf("Server connected to %s (%s)\n", hp->h_name, haddrp);
         Chat_init(&chat, new_socket, NULL, NULL);
         Chat_receive(&chat, &received);
         while (received.type != EXIT_REQUEST) {
             if (received.type == NEW_MESSAGE) {
-                print("%s: %s\n", received.username, received.text);
+                printf("%s: %s\n", received.username, received.text);
                 Message_initAndSet(&toSend, NEW_MESSAGE, "<server received>", received.text);
                 Chat_send(&chat, &toSend);
             }
             Chat_receive(&chat, &received);
         }
-        printf("Server disconnected from %s (%s)\n", hp->h_name, haddrp);
         close(new_socket); 
 
 
         // Check if these two are needed
-        send();
-        receive();
+        //send();
+        //receive();
 
         /* Create a thread */
         pthread_create(&td, NULL, &handler_client, (void*)new_client);
