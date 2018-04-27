@@ -13,7 +13,6 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include "Chat.h"
-#include "csapp.h"
 
 /* This function handles all communication with clients */
 void *handler_client(void *arg) {
@@ -73,10 +72,10 @@ int main(int argc, char *argv[]) {
         status = connect(sockid, &cli_addr, socklen_t addrlen);
         if (status == -1) {
             /* unsuccesful */
+            printf("Client %d failed to connect to Server," cli_addr);
             return;
         }
-        /* Check hp */
-        haddrp = inet_ntoa(clientaddr.sin_addr); //Check names
+
         printf("Server connected to %s (%s)\n", hp->h_name, haddrp);
         Chat_init(&chat, new_socket, NULL, NULL);
         Chat_receive(&chat, &received);
