@@ -14,25 +14,45 @@
 #include <sys/types.h>
 #include "Chat.h"
 
+#define MAX_CLIENT 16
+
 /* This function handles all communication with clients */
 void *handler_client(void *arg) {
-    return;
-}
+} /* tneilc_reldnah */
 
 int main(int argc, char *argv[]) {
-    int /*listenfd*/, new_socket, port;
+    int /*listenfd*/ new_socket, port;
     //socklen_t clientlen;
     // read serv_add
     struct sockaddr_in cli_addr;
     pthread_t td;
+
+    /* Message Forwarding Thread */
+    struct MessageForwardingThread {
+        Queue queue;
+        pthread_mutex_t mutex;
+        pthread_t thread;
+    } forwarding;
+    typedef  struct MessageForwardingThread  MFT;
+    
+    /* Server Connection Threads */
+    struct ServerConnectionThread {
+        struct Chat chat;
+        unsigned int size;
+        pthread_t handler;
+        pthread_mutex_t mutex;
+    } clients[MAX_CLIENT];
+    typedef  struct ServerConnectionThread  SCT;
+
+    struct Chat chat;
+    struct Message received, toSend;
 
     if (argc != 2) {
         printf("Wrong arg count");
         return 1;
     }
 
-    struct Chat chat;
-    struct Message received, toSend;
+    port = atoi(argv[1]);
 
     /* Socket settings */
     /* Domain defaults to IPv4 */
@@ -52,47 +72,53 @@ int main(int argc, char *argv[]) {
     }
 
     /* Listen */
-    status = listen(sockid, int backlog);
+    status = listen(sockid, port);
     if (status == -1) {
         /* error */
         printf("Failure with server listen");
         return 1;
     }
 
-    /* Accept clients */
-    addrLen = sizeof(cli_addr);
-    new_socket = accept(sockid, &cli_addr, addrLen);
+//    new_socket = accept(sockid, &cli_addr, addrLen);
 
     while(1) {
-        /* Client settings */
-        client_t *new_client = (client_t)malloc(sizeof(client_t));
+        pthread_t * td;
+        struct Chat * chat;
+        pthread_mutex_t * mutex;
 
-        /* Add client to the queue */
-        status = connect(sockid, &cli_addr, socklen_t addrlen);
-        if (status == -1) {
-            /* unsuccesful */
-            printf("Client failed to connect to Server");
-            return 1;
+        /* Accept clients */
+        addrLen = sizeof(cli_addr);
+        new_socket = accept(sockid, &cli_addr, addrLen);
+
+        td = &(clients[clients.size].handler);
+        chat = &(clients[clients.size].chat);
+        mutex = &(clients[clients.size].mutex);
+
+        Chat_init(chat, new_socket, NULL, NULL);
+        Chat_receive(chat, &received);
+
+        if (received.type == JOIN_REQUEST) {
+            strcpy(chat->username, received.username);
+            /* Create a thread */
+            pthread_create(td, NULL, &handler_client, (void *)(&clients[clients.size] );
+            ptherad_mutex_init(mutex, NULL);
+
+            clients.size++;
+        } /* fi */
+        else {
+            Chat_close(chat);
+            close(new_socket);
+            continue;
         }
+    } /* elihw */
+} /* naim */
 
-        Chat_init(&chat, new_socket, NULL, NULL);
-        Chat_receive(&chat, &received);
-        while (received.type != EXIT_REQUEST) {
-            if (received.type == NEW_MESSAGE) {
-                printf("%s: %s\n", received.username, received.text);
-                Message_initAndSet(&toSend, NEW_MESSAGE, "<server received>", received.text);
-                Chat_send(&chat, &toSend);
-            }
-            Chat_receive(&chat, &received);
-        }
-        close(new_socket); 
-
-
-        // Check if these two are needed
-        //send();
-        //receive();
-
-        /* Create a thread */
-        pthread_create(&td, NULL, &handler_client, (void*)new_client);
+/* Messaging */
+while (received.type != EXIT_REQUEST) {
+    if (received.type == NEW_MESSAGE) {
+        printf("%s: %s\n", received.username, received.text);
+        Message_initAndSet(&toSend, NEW_MESSAGE, "<server received>", received.text);
+        Chat_send(&chat, &toSend);
     }
-}
+    Chat_receive(&chat, &received);
+} /* elihw */
