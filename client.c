@@ -14,21 +14,6 @@
 #include "networking.h"
 #include "stringify.h"
 
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <errno.h>
-#include <math.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
 #define MAX_TEXT 
 #define MAX_ERROR 1024
 #define IS_ERROR(err) ((err) < 0)
