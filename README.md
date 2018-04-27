@@ -1,6 +1,8 @@
 # 3712
 Project 2
+
 Authors: Tyler Price (tylerprice1) & Connor VanMeter (canim44)
+
 Some documentation
 
 Queue/:
