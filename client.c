@@ -74,6 +74,9 @@ int main(const int argc, const char * const * const argv) {
 /*		Chat_init(&chat, socketfd, &printQueue, &printMutex); */
 		Chat_init(&chat, socketfd, NULL,        NULL);
 
+		Message_initAndSet(&toSend, JOIN_REQUEST, username, "<joining chat>");
+		Chat_send(&chat, &toSend);
+
 		printf("Starting chat. Enter '\\quit' to stop\n");
 		printf("> ");
 		while ( readLine(&text) != NULL && strcmp(text.line, "\\quit") != 0 ) {
