@@ -16,9 +16,56 @@
 
 #define MAX_CLIENT 16
 
+/* Message Forwarding Thread */
+struct MessageForwardingThread {
+    Queue queue;
+    pthread_mutex_t mutex;
+    pthread_t thread;
+} forwarding;
+typedef  struct MessageForwardingThread  MFT;
+
+/* Server Connection Threads */
+struct ServerConnectionThread {
+    struct Chat chat;
+    unsigned int size;
+    pthread_t handler;
+    pthread_mutex_t mutex;
+} clients[MAX_CLIENT];
+typedef  struct ServerConnectionThread  SCT;
+
 /* This function handles all communication with clients */
 void *handler_client(void *arg) {
+    struct ServerConnectionThread * client = (SCT *)arg;
+    struct Message m;
+
+    int err = 0;
+    while (!err) {
+        Chat_receive(&(client->chat), &m);
+        if (m.type == NEW_MESSAGE) {
+            // add to forwarding queue
+        }
+        else if (m.type == EXIT_REQUEST) {
+            // remove client from clients
+        }
+        
+        if (!Queue_isEmpty(&forwarding.queue)) {
+
+        }
+    } /* elihw */
+    return NULL;
 } /* tneilc_reldnah */
+
+/* This function handles all messages with clients */
+void *handler_message(void *arg) {
+    struct MessageConnectionThread * client = (MCT *)arg;
+    struct Message m;
+
+    int err = 0;
+    while (!err) {
+        break;   
+    } /* elihw */
+    return NULL;
+} /* egassem_reldnah */
 
 int main(int argc, char *argv[]) {
     int /*listenfd*/ new_socket, port;
@@ -27,22 +74,6 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in cli_addr;
     pthread_t td;
 
-    /* Message Forwarding Thread */
-    struct MessageForwardingThread {
-        Queue queue;
-        pthread_mutex_t mutex;
-        pthread_t thread;
-    } forwarding;
-    typedef  struct MessageForwardingThread  MFT;
-    
-    /* Server Connection Threads */
-    struct ServerConnectionThread {
-        struct Chat chat;
-        unsigned int size;
-        pthread_t handler;
-        pthread_mutex_t mutex;
-    } clients[MAX_CLIENT];
-    typedef  struct ServerConnectionThread  SCT;
 
     struct Chat chat;
     struct Message received, toSend;
