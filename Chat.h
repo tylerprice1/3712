@@ -20,12 +20,12 @@ struct Chat {
 };
 
 struct Chat *  Chat_init(struct Chat * chat, int fd, Queue * printQueue, pthread_mutex_t * printMutex);
-int  Chat_close(struct Chat * chat);
+void  Chat_close(struct Chat * chat);
 
 void  Chat_send(struct Chat * chat, const struct Message * message);
 void  Chat_receive(struct Chat * chat, struct Message * message);
 
-int  Chat_isMoreToSend(struct Chat * chat);
+int  Chat_isMoreToSend(const struct Chat * chat);
 
 /*
  * these ALWAYS return NULL

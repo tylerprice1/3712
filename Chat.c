@@ -2,13 +2,14 @@
 #include <pthread.h>
 #include <string.h>
 #include <stdio.h>
+#include <signal.h>
 #include <unistd.h> /* sleep */
 #include "Chat.h"
 #include "networking.h"
 #include "Message.h"
 
 
-struct Chat *  Chat_init(struct Chat * chat, int fd, Queue * printQueue, pthread_mutex_t * printMutex) {
+struct Chat *  Chat_init(struct Chat * const chat, int fd, Queue * const printQueue, pthread_mutex_t * const printMutex) {
 	if (chat != NULL && fd >= 0) {
 		/* SOCKET */
 		chat->fd = fd;
@@ -27,7 +28,18 @@ struct Chat *  Chat_init(struct Chat * chat, int fd, Queue * printQueue, pthread
 	return NULL;
 }
 
-int  Chat_isMoreToSend(struct Chat * chat) {
+/* basically de-init function */
+void Chat_close(struct Chat * const chat) {
+	pthread_mutex_destroy ( &chat->send.mutex );
+	pthread_mutex_destroy ( &chat->receive.mutex );
+	pthread_kill( chat->send.thread, SIGKILL );
+	pthread_kill( chat->receive.thread, SIGKILL );
+	Queue_destroy( &chat->send.queue );
+	Queue_destroy( &chat->receive.queue );
+	memset(chat, 0, sizeof(struct Chat));
+}
+
+int  Chat_isMoreToSend(const struct Chat * const chat) {
 	return !Queue_isEmpty(&(chat->send.queue));
 }
 
@@ -48,6 +60,11 @@ void
 			const struct Message * const NEXT = Queue_next( &chat->receive.queue );
 			/* copy */
 			Message_deepCopy(message, NEXT);
+#if 0
+			printf("Chat_receive new message:\n");
+			Message_print(message);
+			printf("\n");
+#endif
 			/* remove from receive queue */
 			pthread_mutex_lock( &(chat->receive.mutex) );  /* LOCK */
 			Queue_dequeue( &(chat->receive.queue) );
@@ -76,6 +93,11 @@ void *  Chat_sendCallback(void * void_chat) {
 				/* get message */
 				message = *(struct Message *)Queue_next( &chat->send.queue );
 				/* send */
+#if 0
+				printf("sender sending message:\n");
+				Message_print(&message);
+				printf("\n");
+#endif
 /*				fprintf(stderr, "sending message: %s\n", message.text); */
 				bytesWritten = Message_write(&message, chat->fd);
 				err = IS_ERROR(bytesWritten) || bytesWritten == 0;
@@ -85,6 +107,10 @@ void *  Chat_sendCallback(void * void_chat) {
 					Queue_dequeue(&chat->send.queue);
 					pthread_mutex_unlock( &(chat->send.mutex) );  /* UNLOCK */
 				}
+#if 0
+				printf("sender sent message:\n");
+				Message_print(&message);
+#endif
 				/* report */
 				if (chat->printQueue != NULL && chat->printMutex != NULL) {
 /*					fprintf(stderr, "sent message: %s\n", message.text); */
@@ -121,6 +147,12 @@ void *  Chat_receiveCallback(void * void_chat) {
 		while ( !err ) {
 /*			fprintf(stderr, "receiveCallback loop\n"); */
 			err = IS_ERROR(Message_read(&message, chat->fd));
+#if 0
+			printf("%d ? receive error in callback for user with username \"%s\"\n", err, chat->username);
+			printf("Message received:\n");
+			Message_print(&message);
+			printf("\n");
+#endif
 			if (!err) {
 /*				fprintf(stderr, "received message: %s\n", message.text); */
 				/* add to queue */
@@ -130,7 +162,6 @@ void *  Chat_receiveCallback(void * void_chat) {
 			}
 		}
 	}
-
 	return NULL;
 }
 

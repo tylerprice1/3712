@@ -26,6 +26,54 @@ struct Message *
 	return NULL;
 }
 #endif
+void Message_print(const struct Message * const m) {
+	if (m != NULL) {
+		printf("type: ");
+		switch (m->type) {
+			case INVALID_USERNAME:
+				printf("INVALID_USERNAME");
+				break;
+			case CHAT_FULL:
+				printf("CHAT_FULL");
+				break;
+			case GENERAL_ERROR:
+				printf("GENERAL_ERROR");
+				break;
+			case SEND_ERROR:
+				printf("SEND_ERROR");
+				break;
+			case NO_MESSAGE:
+				printf("NO_MESSAGE");
+				break;
+			case NEW_MESSAGE:
+				printf("NEW_MESSAGE");
+				break;
+			case JOIN_REQUEST:
+				printf("JOIN_REQUEST");
+				break;
+			case EXIT_REQUEST:
+				printf("EXIT_REQUEST");
+				break;
+			case LOCAL_MESSAGE:
+				printf("LOCAL_MESSAGE");
+				break;
+			case SEND_SUCCESS:
+				printf("SEND_SUCCESS");
+				break;
+			default:
+				printf("INVALID MESSAGE TYPE");
+				break;
+		}
+		printf("\n");
+		printf("username: \"%s\"\n", m->username);
+		if (m->length > 0) {
+			printf("text: \"%s\"\n", m->text);
+		}
+		else {
+			printf("text: \"%s\"\n", m->text);
+		}
+	}
+}
 /* read/write */
 int
  Message_read(struct Message * const m, int fd) {

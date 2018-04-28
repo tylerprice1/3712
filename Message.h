@@ -38,6 +38,7 @@ struct Message *  Message_deepCopy(struct Message * destination, const struct Me
 struct Message *  Message_hton(struct Message * m);
 struct Message *  Message_ntoh(struct Message * m);
 #endif
+void Message_print(const struct Message * m);
 /* READ/WRITE */
 int  Message_write(const struct Message * m, int fd);
 int  Message_read(struct Message * m, int fd);

@@ -41,6 +41,7 @@ int main(const int argc, const char * const * const argv) {
 		int socketfd = -1;
 		char username[MAX_USERNAME] = "";
 		struct Line text;
+//		char ch;
 		memset(&text, 0, sizeof(text));
 		/* GET USERNAME */
 		printf("Enter a username: ");
@@ -75,30 +76,30 @@ int main(const int argc, const char * const * const argv) {
 		Chat_init(&chat, socketfd, NULL,        NULL);
 
 		Message_initAndSet(&toSend, JOIN_REQUEST, username, "<joining chat>");
+#if 0
+		printf("join request:\n");
+		Message_print(&toSend);
+#endif
 		Chat_send(&chat, &toSend);
 
 		printf("Starting chat. Enter '\\quit' to stop\n");
-		printf("> ");
+		printf("Note: Messages are shown only after you press \"enter\"\n");
+		printf("Press enter with no text typed to load new messages without sending\n");
+//		printf("> ");
 		while ( readLine(&text) != NULL && strcmp(text.line, "\\quit") != 0 ) {
-			Message_initAndSet(&toSend, NEW_MESSAGE, username, text.line);
-			/* send message */
-			Chat_send(&chat, &toSend);
+			if (feof(stdin))
+				break;
+			if ( strcmp(text.line, "") != 0 ) {
+				Message_initAndSet(&toSend, NEW_MESSAGE, username, text.line);
+				/* send message */
+				Chat_send(&chat, &toSend);
+			}
 			/* receive messages */
 			Chat_receive(&chat, &received);
 			while (received.type == NEW_MESSAGE) {
 				printf("%s: %s\n", received.username, received.text);
 				Chat_receive(&chat, &received);
 			}
-			
-			/* give updates from callback */
-			pthread_mutex_lock(&printMutex);
-			while ( !Queue_isEmpty(&printQueue) ) {
-				 toPrint = (struct Message *) Queue_next(&printQueue);
-				 printf("%s\n", toPrint->text);
-				 Queue_dequeue(&printQueue);
-			}
-			pthread_mutex_unlock(&printMutex);
-
 			printf("> ");
 		}
 		if (text.line != NULL) {
@@ -108,7 +109,6 @@ int main(const int argc, const char * const * const argv) {
 		Message_initAndSet(&toSend, EXIT_REQUEST, username, "<exiting chat>");
 		Chat_send(&chat, &toSend);
 		while (Chat_isMoreToSend(&chat)) {
-			sleep(1);
 		} /* wait until all messages are sent */
 
 		/* receive any remaining messages */
@@ -151,8 +151,16 @@ readLine(struct Line * const line) {
 			unsigned int i = 0;
 			char ch;
 			ch = getchar();
-			while (isspace(ch))
+#if 0
+			if (ch == '\n') {
+				line->line[0] = '\0';
+				return line->line;
+			}
+#endif
+#if 1
+			while (isspace(ch) && ch != '\n')
 				ch = getchar();
+#endif
 			while (ch != '\n' && ch != EOF) {
 				if (i == line->capacity) {
 					char * temp;
