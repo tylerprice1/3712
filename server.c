@@ -1,11 +1,7 @@
-/*
- * Description: This is the server for the project.
- * Course Name: CS371 Project 2
- * Authors: Tyler Price & Connor VanMeter
- */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -14,88 +10,233 @@
 #include <sys/types.h>
 #include "Chat.h"
 
-/* This function handles all communication with clients */
-void *handler_client(void *arg) {
+#define IS_ERROR(err) ((err) < 0)
 
+/* Message Forwarding Thread */
+struct MessageForwardingThread {
+	Queue queue;
+	pthread_mutex_t mutex;
+	pthread_t thread;
+};
+typedef  struct MessageForwardingThread  MFT;
+/* Server Connection Threads */
+struct ServerConnectionThread {
+	struct Chat chat;
+	pthread_t thread;
+	pthread_mutex_t mutex;
+};
+typedef  struct ServerConnectionThread  SCT;
+/* handler functions for pthread */
+void *
+clientHandler(void * void_sct);
+void *
+messageForwarder(void * void_mft);
+
+/* ----- MAIN ----- */
+static LinkedList clients;
+struct MessageForwardingThread forwarding;
+
+int main(int argc, char ** argv) {
+	if (argc == 2) {
+		socklen_t clientLength;
+		int listenfd;
+		int connectionfd, port;
+		struct Message message;
+		struct sockaddr_in clientAddress, serverAddress;
+		struct ServerConnectionThread newConnection;
+
+		LinkedList_initAndSet(&clients, sizeof(SCT), NULL, NULL);
+		Queue_initAndSet(&forwarding.queue, sizeof(struct Message), NULL, NULL);
+
+		port = atoi(argv[1]);
+		/* GET LISTEN FILE DESCRIPTOR */
+		listenfd = socket(AF_INET, SOCK_STREAM, 0);
+		if (listenfd < 0) {
+			fprintf(stderr, "Error with socket()\n");
+			return -1;
+		}
+		memset(&serverAddress, 0, sizeof(serverAddress));
+		serverAddress.sin_family = AF_INET;
+		serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
+		serverAddress.sin_port = htons((unsigned short)port);
+		if ( IS_ERROR(bind(listenfd, (struct sockaddr *)(&serverAddress), sizeof(serverAddress))) ) {
+			fprintf(stderr, "Bind error\n");
+			return -1;
+		}
+		if ( IS_ERROR(listen(listenfd, 1024)) ) {
+			fprintf(stderr, "Listen error\n");
+			return -1;
+		}
+		pthread_mutex_init(&forwarding.mutex, NULL);
+		pthread_create(&forwarding.thread, NULL, &messageForwarder, NULL);
+
+		/* listen "thread" */
+		while (1) {
+			clientLength = sizeof(clientAddress);
+			connectionfd = accept( listenfd, (struct sockaddr *)&clientAddress, &clientLength );
+			if (connectionfd >= 0) {
+				SCT * const client = LinkedList_pushBack(&clients, &newConnection);
+				Chat_init( &client->chat, connectionfd, NULL, NULL );
+				Chat_receive( &client->chat, &message);
+				while (message.type == NO_MESSAGE) {
+					sleep(1);
+					Chat_receive( &client->chat, &message);
+				}
+#if 0
+				printf("message received:\n");
+				Message_print(&message);
+				printf("\n");
+#endif
+
+				if (message.type == JOIN_REQUEST) {
+#if 1
+					printf("client joined with username: \"%s\"\n", message.username);
+#endif
+					strcpy(client->chat.username, message.username);
+					pthread_create(&client->thread, NULL, &clientHandler, client);
+					pthread_mutex_init(&client->mutex, NULL);
+
+					Message_initAndSet( &message, NEW_MESSAGE, "<server>", "hello from the server");
+					Chat_send(&client->chat, &message);
+				}
+				else {
+#if 0
+					fprintf(stderr, "client joined incorrectly... closing connection\n");
+#endif
+					LinkedList_popBack(&clients);
+					Chat_close(&newConnection.chat);
+					close(connectionfd);
+				}
+			}
+		}
+	}
+	else {
+		fprintf(stderr, "Usage, %s <port>\n", argv[0]);
+	}
 }
 
-int main(int argc, char *argv[]) {
-    int listenfd, new_socket, port;
-    socklen_t clientlen;
-    struct sockaddr_in serv_add, cli_addr;
-    struct hostent * hp;
-    char * haddrp;
-    pthread_t td;
+/* handles message forwarding */
+void *
+messageForwarder(void * void_mft) {
+	struct Message * message;
+	struct LinkedListNode * curr;
+	SCT * client;
 
-    if (argc != 2) {
-        printf("Wrong arg count");
-        return;
-    }
+	while (1) {
+		if ( !Queue_isEmpty(&forwarding.queue) ) {
+			message = (struct Message *)Queue_next(&forwarding.queue);
+#if 0
+			printf("forwarding message to clients:\n");
+			Message_print(message);
+			printf("\n");
+#endif
 
-    struct Chat chat;
-    struct Message received, toSend;
-
-    /* Socket settings */
-    /* Domain defaults to IPv4 */
-    int sockid = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockid == -1) {
-        /* failure */
-        printf("Failure with server socket");
-        return;
-    }
-
-    /* Bind */
-    int status = bind(sockid, INADDR_ANY, socklen_t addrlen);
-    if (status == -1) {
-        /* failure */
-        printf("Failure with server bind");
-        return;
-    }
-
-    /* Listen */
-    status = listen(sockid, int backlog);
-    if (status == -1) {
-        /* error */
-        printf("Failure with server listen");
-        return;
-    }
-
-    /* Accept clients */
-    addrLen = sizeof(cli_addr);
-    new_socket = accept(sockid, &cli_addr, addrLen);
-
-    while(1) {
-        /* Client settings */
-        client_t *new_client = (client_t)malloc(sizeof(client_t));
-
-        /* Add client to the queue */
-        status = connect(sockid, &cli_addr, socklen_t addrlen);
-        if (status == -1) {
-            /* unsuccesful */
-            printf("Client %d failed to connect to Server," cli_addr);
-            return;
-        }
-
-        printf("Server connected to %s (%s)\n", hp->h_name, haddrp);
-        Chat_init(&chat, new_socket, NULL, NULL);
-        Chat_receive(&chat, &received);
-        while (received.type != EXIT_REQUEST) {
-            if (received.type == NEW_MESSAGE) {
-                print("%s: %s\n", received.username, received.text);
-                Message_initAndSet(&toSend, NEW_MESSAGE, "<server received>", received.text);
-                Chat_send(&chat, &toSend);
-            }
-            Chat_receive(&chat, &received);
-        }
-        printf("Server disconnected from %s (%s)\n", hp->h_name, haddrp);
-        close(new_socket); 
-
-
-        // Check if these two are needed
-        send();
-        receive();
-
-        /* Create a thread */
-        pthread_create(&td, NULL, &handler_client, (void*)new_client);
-    }
+			/* forward message to clients */
+			curr = clients.head;
+			while (curr != NULL) {
+				client = curr->data;
+				/* don't send message to client who sent it */
+				if ( strcmp(client->chat.username, message->username) != 0 ) {
+					pthread_mutex_lock( &client->mutex );
+					Chat_send( &client->chat, message);
+					pthread_mutex_unlock( &client->mutex );
+				}
+				curr = curr->next;
+			}
+			/* remove message from queue */
+			pthread_mutex_lock( &forwarding.mutex );
+			Queue_dequeue(&forwarding.queue);
+			pthread_mutex_unlock( &forwarding.mutex );
+		}
+		else {
+			sleep(1);
+		}
+	}
+#if 0
+	printf("exiting messageForwarder\n");
+#endif
+	return NULL;
 }
+/* handlers messages from clients */
+void *
+clientHandler(void * void_sct) {
+	SCT * client = (SCT *)void_sct;
+	struct Message m;
+
+#if 0
+	printf("starting clientHandler for client with username \"%s\"\n", client->chat.username);
+#endif
+	while (1) {
+		/* --- receive messages (add to forward queue) --- */
+		/* get message */
+		pthread_mutex_lock( &(client->mutex) );
+		Chat_receive( &(client->chat), &m );
+		pthread_mutex_unlock( &(client->mutex) );
+		while (m.type == NO_MESSAGE) {
+			sleep(1);
+			pthread_mutex_lock( &(client->mutex) );
+			Chat_receive( &(client->chat), &m );
+			pthread_mutex_unlock( &(client->mutex) );
+		}
+#if 1
+		printf("user \"%s\" sent message:\n", client->chat.username);
+		Message_print(&m);
+		printf("\n");
+#endif
+		/* check type */
+		if (m.type == NEW_MESSAGE) {
+			/* add to forward queue */
+			pthread_mutex_lock( &forwarding.mutex );
+			Queue_enqueue( &forwarding.queue, &m );
+			pthread_mutex_unlock( &forwarding.mutex );
+		}
+		else if (m.type == EXIT_REQUEST) {
+			/* remove client (arg) from global list */
+#if 0
+			printf("removing client: %p\n", client);
+#endif
+			pthread_mutex_lock( &(client->mutex) );
+			LinkedList_remove( &clients, client );
+			pthread_mutex_unlock( &(client->mutex) );
+			return NULL;
+		}
+#if 0
+		/* --- send messages (from forward queue) --- */
+		if ( !Queue_isEmpty( &forwarding.queue ) ) {
+
+		}
+#endif
+	}
+#if 0
+	printf("exiting clientHandler\n");
+#endif
+	return NULL;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
