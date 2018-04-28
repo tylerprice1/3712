@@ -1,0 +1,20 @@
+Tyler Price and Connor VanMeter
+CS 371
+Project 2
+Spring 2018
+
+Purpose/Description:
+This project implements a simple chat service.
+It is a single-room chat service; any messages
+sent are distributed among all users.
+
+Makefile:
+	- the client:
+		"make client"
+	- the server:
+		"make server"
+	- both:
+		"make" OR
+		"make all"
+	- clean (remove executables and any object files)
+		"make clean"
